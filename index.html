@@ -2,13 +2,18 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <!-- 关键：禁止缩放，适配移动端视口 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>霓虹贪吃蛇 - 移动版</title>
+    <title>霓虹贪吃蛇</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
 
-        /* 全局禁止触摸默认行为（如滚动、缩放），专为游戏优化 */
+        /* 定义 CSS 变量，默认是青色 */
+        :root {
+            --theme-color: #00ffcc;       /* 主题色 */
+            --theme-dim: #00cc99;         /* 蛇身颜色（稍暗） */
+            --theme-glow: rgba(0, 255, 204, 0.3); /* 微光背景 */
+        }
+
         body {
             background-color: #0d0d0d;
             color: #fff;
@@ -16,39 +21,89 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh; /* 占满全屏 */
+            height: 100vh;
             margin: 0;
-            font-family: 'Orbitron', sans-serif;
-            overflow: hidden; /* 禁止出现滚动条 */
-            touch-action: none; /* 禁止移动端默认手势 */
+            font-family: 'Orbitron', 'Microsoft YaHei', sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+            transition: color 0.3s ease;
+        }
+
+        .header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 90vw;
+            max-width: 400px;
+            position: relative;
+            margin-bottom: 10px;
         }
 
         h1 {
-            text-shadow: 0 0 10px #00ffcc;
+            /* 使用变量 */
+            text-shadow: 0 0 10px var(--theme-color);
             letter-spacing: 2px;
-            margin: 10px 0;
-            font-size: 1.5rem;
+            margin: 0;
+            font-size: 1.8rem;
+            text-align: center;
+            font-weight: bold;
+            transition: text-shadow 0.3s ease;
+        }
+
+        .settings-btn {
+            position: absolute;
+            right: 0;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--theme-color);
+            border-radius: 8px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 0 5px var(--theme-glow);
+            transition: all 0.3s ease;
+            z-index: 20;
+        }
+
+        .settings-btn:active, .settings-btn.active {
+            background: var(--theme-glow);
+            box-shadow: 0 0 15px var(--theme-color);
+        }
+
+        .settings-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: var(--theme-color);
+            transition: transform 0.5s ease, fill 0.3s ease;
+        }
+
+        .settings-btn.active svg {
+            transform: rotate(180deg);
         }
 
         .game-wrapper {
             position: relative;
-            box-shadow: 0 0 30px rgba(0, 255, 204, 0.15);
+            box-shadow: 0 0 30px var(--theme-glow);
             border-radius: 10px;
             padding: 2px;
             background: linear-gradient(45deg, #1a1a1a, #2a2a2a);
-            /* 响应式画布容器 */
             width: 90vw;
             max-width: 400px;
             height: 90vw;
             max-height: 400px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+            transition: box-shadow 0.3s ease;
         }
 
         canvas {
             background-color: #111;
             border-radius: 5px;
             display: block;
-            width: 100%; /* 让画布填满容器 */
+            width: 100%;
             height: 100%;
         }
 
@@ -59,54 +114,150 @@
             max-width: 400px;
             margin-bottom: 5px;
             font-size: 1rem;
+            font-weight: bold;
         }
 
-        .score-box {
-            color: #00ffcc;
+        .score-box { 
+            color: var(--theme-color); 
+            transition: color 0.3s ease;
         }
 
-        /* 遮罩层 */
-        #overlay {
+        .overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.85);
+            background: rgba(0, 0, 0, 0.9);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             border-radius: 10px;
-            backdrop-filter: blur(3px);
+            backdrop-filter: blur(5px);
             z-index: 10;
         }
 
-        #overlay h2 {
+        .overlay h2 {
             font-size: 2rem;
-            margin: 0 0 15px 0;
-            color: #ff3366;
-            text-shadow: 0 0 10px #ff3366;
+            margin: 0 0 20px 0;
+            color: #fff; /* 默认白色，避免颜色冲突 */
+            text-shadow: 0 0 10px var(--theme-color);
+            letter-spacing: 2px;
+            transition: text-shadow 0.3s ease;
         }
 
-        button.start-btn {
+        /* 统一标题颜色 */
+        #settingsOverlay h2, #gameOverlay h2 {
+            color: var(--theme-color);
+            text-shadow: 0 0 10px var(--theme-color);
+        }
+        
+        /* 游戏结束时的特殊红色提示也可以保留，或者跟随主题 */
+        #gameOverlay h2.game-over-text {
+             color: #ff3366;
+             text-shadow: 0 0 10px #ff3366;
+        }
+
+        button.action-btn {
             background: transparent;
-            border: 2px solid #00ffcc;
-            color: #00ffcc;
-            padding: 10px 25px;
-            font-size: 1.2rem;
-            font-family: 'Orbitron', sans-serif;
+            border: 2px solid var(--theme-color);
+            color: var(--theme-color);
+            padding: 8px 25px;
+            font-size: 1.1rem;
+            font-family: 'Orbitron', 'Microsoft YaHei', sans-serif;
+            font-weight: bold;
             cursor: pointer;
             border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0, 255, 204, 0.2);
+            box-shadow: 0 0 10px var(--theme-glow);
+            margin-top: 20px;
+            transition: all 0.3s ease;
         }
 
-        /* ----- 移动端控制器样式 ----- */
+        button.action-btn:active {
+            background: var(--theme-color);
+            color: #000;
+        }
+
+        /* ----- 设置菜单样式优化 ----- */
+        .settings-content {
+            width: 80%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .setting-item {
+            text-align: center;
+        }
+
+        .setting-label {
+            margin-bottom: 10px;
+            font-size: 1rem;
+            color: #ccc;
+            display: block;
+        }
+
+        /* 滑动条 */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]:focus { outline: none; }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            background: #333;
+            border-radius: 5px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: var(--theme-color);
+            box-shadow: 0 0 8px var(--theme-color);
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -7px;
+            transition: background 0.3s, box-shadow 0.3s;
+        }
+
+        /* 颜色选择器容器 */
+        .color-picker {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* 颜色方块 */
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px; /* 方框圆角 */
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .color-option:active {
+            transform: scale(0.9);
+        }
+
+        /* 选中状态 */
+        .color-option.selected {
+            border-color: #fff;
+            box-shadow: 0 0 10px #fff;
+            transform: scale(1.1);
+        }
+
+        /* ----- 虚拟按键 ----- */
         .controls-area {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             grid-template-rows: repeat(2, 1fr);
-            gap: 10px;
+            gap: 12px;
             width: 180px;
             height: 120px;
             margin-top: 10px;
@@ -114,27 +265,36 @@
 
         .d-pad-btn {
             background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(0, 255, 204, 0.3);
-            border-radius: 10px;
+            border: 1px solid var(--theme-color);
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
-            color: #00ffcc;
             cursor: pointer;
-            user-select: none; /* 禁止选中文本 */
-            -webkit-tap-highlight-color: transparent; /* 去除点击高亮背景 */
-            transition: background 0.1s, box-shadow 0.1s;
+            -webkit-tap-highlight-color: transparent;
+            transition: border-color 0.3s;
         }
-
-        /* 按钮按下时的效果 */
+        
         .d-pad-btn:active {
-            background: rgba(0, 255, 204, 0.2);
-            box-shadow: 0 0 15px rgba(0, 255, 204, 0.5);
-            transform: scale(0.95);
+            background: var(--theme-glow);
+            box-shadow: 0 0 15px var(--theme-color);
+            transform: scale(0.92);
         }
 
-        /* 布局定位 */
+        .d-pad-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: var(--theme-color);
+            filter: drop-shadow(0 0 2px var(--theme-color));
+            pointer-events: none;
+            transition: fill 0.3s;
+        }
+
+        .btn-up svg { transform: rotate(0deg); }
+        .btn-left svg { transform: rotate(-90deg); }
+        .btn-down svg { transform: rotate(180deg); }
+        .btn-right svg { transform: rotate(90deg); }
+
         .btn-up { grid-column: 2; grid-row: 1; }
         .btn-left { grid-column: 1; grid-row: 2; }
         .btn-down { grid-column: 2; grid-row: 2; }
@@ -145,30 +305,66 @@
 </head>
 <body>
 
-    <h1>NEON SNAKE</h1>
+    <div class="header">
+        <h1>霓虹贪吃蛇</h1>
+        <div class="settings-btn" onclick="toggleSettings()">
+            <svg viewBox="0 0 24 24">
+                <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+            </svg>
+        </div>
+    </div>
 
     <div class="info-panel">
-        <div class="score-box">SCORE: <span id="score">0</span></div>
-        <div class="score-box">HIGH: <span id="highScore">0</span></div>
+        <div class="score-box">得分: <span id="score">0</span></div>
+        <div class="score-box">最高分: <span id="highScore">0</span></div>
     </div>
 
     <div class="game-wrapper">
-        <!-- 内部逻辑分辨率保持 400x400，CSS控制显示大小 -->
         <canvas id="gameCanvas" width="400" height="400"></canvas>
         
-        <div id="overlay">
-            <h2 id="statusText">READY?</h2>
-            <button class="start-btn" onclick="startGame()">Start</button>
+        <!-- 游戏 遮罩 -->
+        <div id="gameOverlay" class="overlay">
+            <h2 id="statusText">准备好了吗？</h2>
+            <button class="action-btn" onclick="startGame()">开始游戏</button>
+        </div>
+
+        <!-- 设置 遮罩 -->
+        <div id="settingsOverlay" class="overlay hidden">
+            <h2>游戏设置</h2>
+            <div class="settings-content">
+                
+                <!-- 速度调节 -->
+                <div class="setting-item">
+                    <span class="setting-label">游戏速度: <span id="speedValDisplay">5</span></span>
+                    <input type="range" id="speedRange" min="1" max="10" value="5" oninput="updateSpeedDisplay(this.value)">
+                </div>
+
+                <!-- 颜色调节 -->
+                <div class="setting-item">
+                    <span class="setting-label">界面主题色</span>
+                    <div class="color-picker" id="colorPickerContainer">
+                        <!-- JS 自动生成颜色方块 -->
+                    </div>
+                </div>
+
+            </div>
+            <button class="action-btn" onclick="closeSettings()">继续游戏</button>
         </div>
     </div>
     
-    <!-- 移动端虚拟按键区域 -->
     <div class="controls-area">
-        <!-- 这里的 ontouchstart 用于移动端快速响应，onclick 用于电脑鼠标点击 -->
-        <div class="d-pad-btn btn-up" ontouchstart="inputDir('up', event)" onclick="inputDir('up', event)">▲</div>
-        <div class="d-pad-btn btn-left" ontouchstart="inputDir('left', event)" onclick="inputDir('left', event)">◀</div>
-        <div class="d-pad-btn btn-down" ontouchstart="inputDir('down', event)" onclick="inputDir('down', event)">▼</div>
-        <div class="d-pad-btn btn-right" ontouchstart="inputDir('right', event)" onclick="inputDir('right', event)">▶</div>
+        <div class="d-pad-btn btn-up" ontouchstart="inputDir('up', event)" onclick="inputDir('up', event)">
+            <svg viewBox="0 0 24 24"><path d="M12 4l-10 16h20z"/></svg>
+        </div>
+        <div class="d-pad-btn btn-left" ontouchstart="inputDir('left', event)" onclick="inputDir('left', event)">
+            <svg viewBox="0 0 24 24"><path d="M12 4l-10 16h20z"/></svg>
+        </div>
+        <div class="d-pad-btn btn-down" ontouchstart="inputDir('down', event)" onclick="inputDir('down', event)">
+            <svg viewBox="0 0 24 24"><path d="M12 4l-10 16h20z"/></svg>
+        </div>
+        <div class="d-pad-btn btn-right" ontouchstart="inputDir('right', event)" onclick="inputDir('right', event)">
+            <svg viewBox="0 0 24 24"><path d="M12 4l-10 16h20z"/></svg>
+        </div>
     </div>
 
     <script>
@@ -176,15 +372,38 @@
         const ctx = canvas.getContext("2d");
         const scoreElement = document.getElementById("score");
         const highScoreElement = document.getElementById("highScore");
-        const overlay = document.getElementById("overlay");
-        const statusText = document.getElementById("statusText");
-        const btn = document.querySelector(".start-btn");
-
-        // 游戏参数
-        const gridSize = 20;
-        const tileCount = 20; // 400 / 20 = 20
-        let speed = 110; 
         
+        const gameOverlay = document.getElementById("gameOverlay");
+        const settingsOverlay = document.getElementById("settingsOverlay");
+        const statusText = document.getElementById("statusText");
+        const startBtn = document.querySelector("#gameOverlay button");
+        
+        const settingsBtn = document.querySelector(".settings-btn");
+        const speedRange = document.getElementById("speedRange");
+        const speedValDisplay = document.getElementById("speedValDisplay");
+        const colorContainer = document.getElementById("colorPickerContainer");
+
+        // --- 主题配置 ---
+        const themes = [
+            { name: 'cyan',   hex: '#00ffcc', dim: '#00cc99' }, // 青色 (默认)
+            { name: 'red',    hex: '#ff3333', dim: '#cc0000' }, // 红色
+            { name: 'orange', hex: '#ff9900', dim: '#cc7a00' }, // 橙色
+            { name: 'yellow', hex: '#ffff33', dim: '#cccc00' }, // 黄色
+            { name: 'green',  hex: '#33ff33', dim: '#00cc00' }, // 绿色
+            { name: 'blue',   hex: '#0099ff', dim: '#0066cc' }, // 蓝色
+            { name: 'purple', hex: '#cc33ff', dim: '#9900cc' }  // 紫色
+        ];
+
+        // 当前状态
+        let currentThemeIndex = parseInt(localStorage.getItem('snakeThemeIndex')) || 0;
+        let themeColor = themes[currentThemeIndex].hex;
+        let themeDim = themes[currentThemeIndex].dim;
+        
+        // 游戏变量
+        const gridSize = 20;
+        const tileCount = 20;
+        let speedLevel = localStorage.getItem('snakeSpeedLevel') || 5; 
+        let speedInterval = calculateInterval(speedLevel); 
         let score = 0;
         let highScore = localStorage.getItem('snakeHighScore') || 0;
         let velocityX = 0;
@@ -193,70 +412,65 @@
         let food = { x: 5, y: 5 };
         let gameInterval;
         let isGameRunning = false;
-        
-        // 记录上一帧的移动方向，防止快速按键导致的自杀
+        let isPaused = false; 
         let lastVelocityX = 0;
         let lastVelocityY = 0;
 
+        // --- 初始化 ---
         highScoreElement.innerText = highScore;
+        speedRange.value = speedLevel;
+        updateSpeedDisplay(speedLevel);
+        applyTheme(currentThemeIndex); // 应用保存的主题
+        initColorPicker(); // 生成颜色方块
 
-        // 键盘监听
         document.addEventListener("keydown", keyDownEvent);
+
+        // --- 核心逻辑 ---
 
         function startGame() {
             snake = [{x: 10, y: 10}, {x: 9, y: 10}, {x: 8, y: 10}];
             score = 0;
             scoreElement.innerText = score;
-            velocityX = 1; 
-            velocityY = 0;
-            lastVelocityX = 1;
-            lastVelocityY = 0;
+            velocityX = 1; velocityY = 0;
+            lastVelocityX = 1; lastVelocityY = 0;
             isGameRunning = true;
-            speed = 110;
+            isPaused = false;
+            speedInterval = calculateInterval(speedLevel);
             
-            overlay.classList.add("hidden");
+            gameOverlay.classList.add("hidden");
+            settingsOverlay.classList.add("hidden");
+            statusText.classList.remove("game-over-text"); // 移除可能的红色样式
+            
             placeFood();
-            
+            startLoop();
+        }
+
+        function startLoop() {
             if (gameInterval) clearInterval(gameInterval);
-            gameInterval = setInterval(update, speed);
+            gameInterval = setInterval(update, speedInterval);
         }
 
         function update() {
-            if (!isGameRunning) return;
+            if (!isGameRunning || isPaused) return;
 
-            // 更新真实移动方向
             const head = { x: snake[0].x + velocityX, y: snake[0].y + velocityY };
+            lastVelocityX = velocityX; lastVelocityY = velocityY;
 
-            // 记录当前帧的速度方向（用于下一次按键判断）
-            lastVelocityX = velocityX;
-            lastVelocityY = velocityY;
-
-            // 撞墙检测
             if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
-                gameOver();
-                return;
+                gameOver(); return;
             }
 
-            // 撞自己检测
             for (let i = 0; i < snake.length; i++) {
                 if (head.x === snake[i].x && head.y === snake[i].y) {
-                    gameOver();
-                    return;
+                    gameOver(); return;
                 }
             }
 
             snake.unshift(head);
 
-            // 吃食物
             if (head.x === food.x && head.y === food.y) {
                 score += 10;
                 scoreElement.innerText = score;
-                // 难度增加
-                if (score % 50 === 0 && speed > 60) {
-                    clearInterval(gameInterval);
-                    speed -= 2; 
-                    gameInterval = setInterval(update, speed);
-                }
                 placeFood();
             } else {
                 snake.pop();
@@ -266,38 +480,39 @@
         }
 
         function draw() {
+            // 清屏
             ctx.fillStyle = "#111";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // 绘制网格
+            // 网格
             ctx.strokeStyle = "#1a1a1a";
             ctx.lineWidth = 1;
             for(let i=0; i<tileCount; i++) {
                 ctx.beginPath();
-                ctx.moveTo(i*gridSize, 0);
-                ctx.lineTo(i*gridSize, canvas.height);
-                ctx.stroke();
+                ctx.moveTo(i*gridSize, 0); ctx.lineTo(i*gridSize, canvas.height); ctx.stroke();
                 ctx.beginPath();
-                ctx.moveTo(0, i*gridSize);
-                ctx.lineTo(canvas.width, i*gridSize);
-                ctx.stroke();
+                ctx.moveTo(0, i*gridSize); ctx.lineTo(canvas.width, i*gridSize); ctx.stroke();
             }
 
-            // 绘制食物
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = "#ff3366";
-            ctx.fillStyle = "#ff3366";
+            // 食物 (改为白色核心 + 主题色辉光，确保任何背景都可见)
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = themeColor; // 辉光使用主题色
+            ctx.fillStyle = "#ffffff";    // 核心白色
             ctx.beginPath();
-            ctx.arc(food.x * gridSize + gridSize/2, food.y * gridSize + gridSize/2, gridSize/2 - 2, 0, 2*Math.PI);
+            ctx.arc(food.x * gridSize + gridSize/2, food.y * gridSize + gridSize/2, gridSize/2 - 3, 0, 2*Math.PI);
             ctx.fill();
             ctx.shadowBlur = 0;
 
-            // 绘制蛇
+            // 蛇
             for (let i = 0; i < snake.length; i++) {
-                let color = i === 0 ? "#00ffcc" : "#00cc99";
-                ctx.shadowBlur = i === 0 ? 15 : 0;
-                ctx.shadowColor = "#00ffcc";
+                // 头用亮色，身体用暗色
+                let color = i === 0 ? themeColor : themeDim;
+                
+                ctx.shadowBlur = i === 0 ? 20 : 0; // 只有头有强光
+                ctx.shadowColor = themeColor;
                 ctx.fillStyle = color;
+                
+                // 绘制圆角矩形
                 ctx.fillRect(snake[i].x * gridSize + 1, snake[i].y * gridSize + 1, gridSize - 2, gridSize - 2);
             }
             ctx.shadowBlur = 0;
@@ -311,8 +526,7 @@
                 valid = true;
                 for (let part of snake) {
                     if (part.x === food.x && part.y === food.y) {
-                        valid = false;
-                        break;
+                        valid = false; break;
                     }
                 }
             }
@@ -325,37 +539,113 @@
                 highScore = score;
                 localStorage.setItem('snakeHighScore', highScore);
                 highScoreElement.innerText = highScore;
-                statusText.innerText = "NEW RECORD!";
+                statusText.innerText = "新纪录！";
+                statusText.style.color = themeColor; 
             } else {
-                statusText.innerText = "GAME OVER";
+                statusText.innerText = "游戏结束";
+                statusText.classList.add("game-over-text"); // 特殊红色样式
+                statusText.style.color = "#ff3366";
             }
-            btn.innerText = "RESTART";
-            overlay.classList.remove("hidden");
+            startBtn.innerText = "重新开始";
+            gameOverlay.classList.remove("hidden");
         }
 
-        // 统一的方向控制逻辑
-        function setDirection(dir) {
-            if (!isGameRunning) return;
+        // --- 设置 & 主题逻辑 ---
+
+        function initColorPicker() {
+            colorContainer.innerHTML = "";
+            themes.forEach((theme, index) => {
+                const box = document.createElement('div');
+                box.className = 'color-option';
+                box.style.backgroundColor = theme.hex;
+                // 添加点击事件
+                box.onclick = () => {
+                    applyTheme(index);
+                    // 重新绘制预览(如果是暂停状态)
+                    if(isPaused || !isGameRunning) draw();
+                };
+                colorContainer.appendChild(box);
+            });
+            updatePickerSelection(currentThemeIndex);
+        }
+
+        function applyTheme(index) {
+            currentThemeIndex = index;
+            const t = themes[index];
+            themeColor = t.hex;
+            themeDim = t.dim;
             
-            // 使用 lastVelocity 防止同帧掉头
-            switch (dir) {
-                case 'up':
-                    if (lastVelocityY !== 1) { velocityX = 0; velocityY = -1; }
-                    break;
-                case 'down':
-                    if (lastVelocityY !== -1) { velocityX = 0; velocityY = 1; }
-                    break;
-                case 'left':
-                    if (lastVelocityX !== 1) { velocityX = -1; velocityY = 0; }
-                    break;
-                case 'right':
-                    if (lastVelocityX !== -1) { velocityX = 1; velocityY = 0; }
-                    break;
+            // 更新 CSS 变量
+            document.documentElement.style.setProperty('--theme-color', themeColor);
+            document.documentElement.style.setProperty('--theme-dim', themeDim);
+            document.documentElement.style.setProperty('--theme-glow', themeColor + '4D'); // 4D = 30% alpha
+            
+            // 保存
+            localStorage.setItem('snakeThemeIndex', index);
+            updatePickerSelection(index);
+        }
+
+        function updatePickerSelection(index) {
+            const boxes = document.querySelectorAll('.color-option');
+            boxes.forEach((box, i) => {
+                if (i === index) box.classList.add('selected');
+                else box.classList.remove('selected');
+            });
+        }
+
+        function toggleSettings() {
+            if (!settingsOverlay.classList.contains("hidden")) {
+                closeSettings();
+                return;
+            }
+            settingsOverlay.classList.remove("hidden");
+            settingsBtn.classList.add("active");
+            if (isGameRunning) {
+                isPaused = true;
+                clearInterval(gameInterval);
             }
         }
 
-        // 键盘事件适配
+        function closeSettings() {
+            settingsOverlay.classList.add("hidden");
+            settingsBtn.classList.remove("active");
+            
+            // 应用速度
+            speedLevel = speedRange.value;
+            localStorage.setItem('snakeSpeedLevel', speedLevel);
+            speedInterval = calculateInterval(speedLevel);
+
+            if (isGameRunning) {
+                isPaused = false;
+                startLoop();
+            }
+        }
+
+        function updateSpeedDisplay(val) {
+            speedValDisplay.innerText = val;
+        }
+
+        function calculateInterval(level) {
+            let ms = 220 - (level * 18);
+            return Math.max(40, ms);
+        }
+
+        // --- 输入控制 ---
+
+        function setDirection(dir) {
+            if (!isGameRunning || isPaused) return;
+            switch (dir) {
+                case 'up': if (lastVelocityY !== 1) { velocityX = 0; velocityY = -1; } break;
+                case 'down': if (lastVelocityY !== -1) { velocityX = 0; velocityY = 1; } break;
+                case 'left': if (lastVelocityX !== 1) { velocityX = -1; velocityY = 0; } break;
+                case 'right': if (lastVelocityX !== -1) { velocityX = 1; velocityY = 0; } break;
+            }
+        }
+
         function keyDownEvent(e) {
+            if (e.keyCode === 27 && !settingsOverlay.classList.contains("hidden")) {
+                closeSettings(); return;
+            }
             switch (e.keyCode) {
                 case 37: setDirection('left'); break;
                 case 38: setDirection('up'); break;
@@ -364,14 +654,12 @@
             }
         }
 
-        // 屏幕按钮事件适配
         function inputDir(dir, event) {
-            // 阻止默认事件（如双击缩放）
             if(event) event.preventDefault();
             setDirection(dir);
         }
         
-        // 初始画面
+        // 初始绘制
         draw();
 
     </script>
