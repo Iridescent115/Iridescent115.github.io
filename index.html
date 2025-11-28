@@ -1,1 +1,161 @@
-<h1>Welcome to My Homepage</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #222;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 2px solid #fff;
+            background-color: #000;
+        }
+        .score {
+            margin: 10px;
+            font-size: 20px;
+        }
+        .game-over {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+        .game-over h1 {
+            margin: 0;
+        }
+        .game-over button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="score">Score: <span id="score">0</span></div>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <div class="game-over" id="gameOver">
+        <h1>Game Over</h1>
+        <p>Your score: <span id="finalScore">0</span></p>
+        <button onclick="restartGame()">Restart</button>
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score');
+        const gameOverScreen = document.getElementById('gameOver');
+        const finalScoreDisplay = document.getElementById('finalScore');
+
+        const box = 20; // Size of each grid box
+        let snake = [{ x: 9 * box, y: 10 * box }];
+        let direction = "RIGHT";
+        let food = {
+            x: Math.floor(Math.random() * 20) * box,
+            y: Math.floor(Math.random() * 20) * box
+        };
+        let score = 0;
+        let speed = 200; // Initial speed in milliseconds
+        let gameInterval;
+        let isPaused = false;
+
+        document.addEventListener("keydown", handleKeyPress);
+
+        function handleKeyPress(event) {
+            if (event.key === "ArrowUp" && direction !== "DOWN") direction = "UP";
+            else if (event.key === "ArrowDown" && direction !== "UP") direction = "DOWN";
+            else if (event.key === "ArrowLeft" && direction !== "RIGHT") direction = "LEFT";
+            else if (event.key === "ArrowRight" && direction !== "LEFT") direction = "RIGHT";
+            else if (event.key === " ") togglePause();
+        }
+
+        function togglePause() {
+            if (isPaused) {
+                isPaused = false;
+                gameInterval = setInterval(drawGame, speed);
+            } else {
+                isPaused = true;
+                clearInterval(gameInterval);
+            }
+        }
+
+        function drawGame() {
+            // Clear canvas
+            ctx.fillStyle = "#000";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw snake
+            ctx.fillStyle = "lime";
+            snake.forEach(segment => {
+                ctx.fillRect(segment.x, segment.y, box, box);
+            });
+
+            // Draw food
+            ctx.fillStyle = "red";
+            ctx.fillRect(food.x, food.y, box, box);
+
+            // Move snake
+            let head = { ...snake[0] };
+            if (direction === "UP") head.y -= box;
+            if (direction === "DOWN") head.y += box;
+            if (direction === "LEFT") head.x -= box;
+            if (direction === "RIGHT") head.x += box;
+
+            // Check for collisions
+            if (head.x < 0 || head.y < 0 || head.x >= canvas.width || head.y >= canvas.height || snake.some(segment => segment.x === head.x && segment.y === head.y)) {
+                endGame();
+                return;
+            }
+
+            // Check if food is eaten
+            if (head.x === food.x && head.y === food.y) {
+                score++;
+                scoreDisplay.textContent = score;
+                food = {
+                    x: Math.floor(Math.random() * 20) * box,
+                    y: Math.floor(Math.random() * 20) * box
+                };
+                if (speed > 50) {
+                    speed -= 10; // Increase speed
+                    clearInterval(gameInterval);
+                    gameInterval = setInterval(drawGame, speed);
+                }
+            } else {
+                snake.pop();
+            }
+
+            snake.unshift(head);
+        }
+
+        function endGame() {
+            clearInterval(gameInterval);
+            gameOverScreen.style.display = "flex";
+            finalScoreDisplay.textContent = score;
+        }
+
+        function restartGame() {
+            snake = [{ x: 9 * box, y: 10 * box }];
+            direction = "RIGHT";
+            food = {
+                x: Math.floor(Math.random() * 20) * box,
+                y: Math.floor(Math.random() * 20) * box
+            };
+            score = 0;
+            speed = 200;
+            scoreDisplay.textContent = score;
+            gameOverScreen.style.display = "none";
+            gameInterval = setInterval(drawGame, speed);
+        }
+
+        gameInterval = setInterval(drawGame, speed);
+    </script>
+</body>
+</html>
