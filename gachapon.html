@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍯 幸运扭蛋机 🍯</title>
+    <!-- 引入 SheetJS 用于读取 Excel 文件 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        /* --- 1. 字体设置 --- */
+        :root {
+            --main-font: "YouYuan", "Yuanti SC", "STYuanti", "Microsoft YaHei", "SimHei", sans-serif;
+            --bg-color: #FFF8E1;        
+            --honey-yellow: #FFC107;    
+            --honey-dark: #FF8F00;      
+            --honey-shadow: #E65100;    
+            --choco-brown: #5D4037;     
+            --matcha-green: #81C784;    
+            --danger-red: #E57373;      
+            --gray-cancel: #B0BEC5;
+            --white: #FFFFFF;
+        }
+
+        body {
+            margin: 0; padding: 0; height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at 50% 50%, #FFECB3 2px, transparent 2.5px);
+            background-size: 30px 30px;
+            font-family: var(--main-font);
+            font-weight: bold;
+            overflow: hidden;
+            color: var(--choco-brown);
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* --- 顶部按钮通用样式 (设置 & 主页) --- */
+        .top-btn {
+            position: absolute; top: 20px;
+            width: 50px; height: 50px;
+            background: var(--honey-yellow);
+            border: 3px solid var(--choco-brown);
+            border-radius: 12px; cursor: pointer;
+            display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 4px 0 var(--choco-brown);
+            transition: transform 0.1s; z-index: 200;
+            text-decoration: none; /* 去除链接下划线 */
+        }
+        .top-btn:active { transform: translateY(4px); box-shadow: 0 0 0 var(--choco-brown); }
+        .top-btn-icon { font-size: 28px; color: var(--choco-brown); transition: transform 0.5s; }
+        
+        /* 1. 设置按钮位置 (右上) */
+        .settings-btn { right: 20px; }
+        .settings-btn:hover .top-btn-icon { transform: rotate(90deg); }
+
+        /* 2. 主页按钮位置 (左上) - 新增 */
+        .home-btn { left: 20px; }
+        .home-btn svg { width: 28px; height: 28px; fill: var(--choco-brown); }
+
+        /* --- 扭蛋机容器 --- */
+        .machine-wrapper {
+            position: relative; display: flex; flex-direction: column; align-items: center; z-index: 10;
+        }
+
+        /* 顶部盖子 */
+        .machine-lid {
+            width: 140px; height: 40px;
+            background: var(--honey-dark);
+            border: 4px solid var(--choco-brown);
+            border-radius: 20px 20px 0 0;
+            margin-bottom: -10px; z-index: 15;
+            box-shadow: inset 0 5px 10px rgba(255,255,255,0.3);
+            position: relative;
+        }
+        .machine-lid::after {
+            content: ''; position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
+            width: 20px; height: 20px; background: var(--honey-yellow);
+            border: 4px solid var(--choco-brown); border-radius: 50%;
+        }
+
+        /* 玻璃球罩 */
+        .globe {
+            width: 260px; height: 260px;
+            background: radial-gradient(circle at 35% 35%, 
+                rgba(255,255,255,0.1) 0%, 
+                rgba(255,255,255,0.05) 40%, 
+                rgba(255,215,64, 0.2) 100%);
+            border: 4px solid var(--choco-brown);
+            border-radius: 50%;
+            position: relative; z-index: 10; overflow: hidden;
+            box-shadow: inset 10px 10px 40px rgba(255,255,255,0.5), inset -10px -20px 40px rgba(0,0,0,0.1), 0 10px 20px rgba(0,0,0,0.15);
+            background-color: rgba(255, 255, 255, 0.2); backdrop-filter: blur(2px);
+        }
+        .globe::after {
+            content: ''; position: absolute; top: 40px; left: 40px; width: 50px; height: 30px;
+            background: white; border-radius: 50%; transform: rotate(-45deg); opacity: 0.6; filter: blur(2px);
+        }
+
+        /* --- 3D 糖果 --- */
+        .ball {
+            position: absolute; border-radius: 50%;
+            border: 1px solid rgba(0,0,0,0.1);
+            background: radial-gradient(circle at 30% 30%, var(--highlight) 0%, var(--base) 50%, var(--shadow) 100%);
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+            display: flex; justify-content: center; align-items: center; overflow: hidden;
+            transform: translate(0,0);
+        }
+        .ball::before {
+            content: ''; width: 100%; height: 20%; background: rgba(255,255,255,0.4);
+            transform: rotate(-15deg); border-top: 1px solid rgba(255,255,255,0.6); border-bottom: 1px solid rgba(255,255,255,0.6);
+        }
+
+        /* --- 机器底座 --- */
+        .base {
+            width: 220px; height: 180px; background: var(--honey-yellow);
+            border: 4px solid var(--choco-brown); border-radius: 30px;
+            margin-top: -50px; z-index: 5; position: relative;
+            box-shadow: inset 0 -10px 0 var(--honey-dark), 0 15px 0 #8d6e63, 0 25px 20px rgba(0,0,0,0.2);
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 20px;
+        }
+
+        .knob-area {
+            position: absolute; top: 60px; width: 80px; height: 80px;
+            background: #FFE082; border-radius: 50%; border: 3px solid var(--choco-brown);
+            box-shadow: inset 0 -5px 0 rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center;
+        }
+        .knob {
+            width: 20px; height: 60px; background: var(--white);
+            border: 3px solid var(--choco-brown); border-radius: 10px; cursor: pointer;
+            box-shadow: 0 4px 5px rgba(0,0,0,0.2); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .knob-area.active .knob { transform: rotate(360deg); }
+
+        .exit-door {
+            width: 100px; height: 60px; background: #3E2723;
+            border-radius: 10px 10px 30px 30px; border: 3px solid #5D4037;
+            position: relative; overflow: hidden; margin-bottom: 10px;
+            box-shadow: inset 0 5px 10px rgba(0,0,0,0.5);
+        }
+
+        .drop-ball {
+            position: absolute; width: 50px; height: 50px;
+            border-radius: 50%; z-index: 8; top: 200px; left: 50%; transform: translateX(-50%);
+            display: none; border: 2px solid rgba(0,0,0,0.1);
+        }
+
+        /* --- 按钮区 --- */
+        .controls { margin-top: 40px; display: flex; gap: 20px; z-index: 20; }
+        .btn {
+            padding: 12px 35px; font-size: 1.5rem; font-family: var(--main-font);
+            border: 3px solid var(--choco-brown); border-radius: 50px; cursor: pointer;
+            text-transform: uppercase; font-weight: bold;
+            box-shadow: 0 6px 0 var(--choco-brown); transition: all 0.1s; outline: none;
+        }
+        .btn-start { background: #FFCA28; color: var(--choco-brown); }
+        .btn-reset { background: #FFCCBC; color: #BF360C; display: none; }
+        .btn:active { transform: translateY(6px); box-shadow: 0 0 0 var(--choco-brown); }
+        .btn:disabled { background: #E0E0E0; color: #9E9E9E; box-shadow: 0 6px 0 #757575; cursor: not-allowed; }
+
+        /* --- 结果弹窗 --- */
+        .result-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; display: flex; justify-content: center; align-items: center; z-index: 100;
+        }
+        .result-paper {
+            background: #FFF; width: 0; height: 10px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            opacity: 0; transform: scale(0);
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            position: relative; overflow: hidden;
+            background-image: linear-gradient(#f0f0f0 1px, transparent 1px); background-size: 100% 20px;
+        }
+        .result-paper::before, .result-paper::after {
+            content: ''; position: absolute; left: 0; width: 100%; height: 10px;
+            background: repeating-linear-gradient(45deg, var(--honey-yellow), var(--honey-yellow) 10px, var(--honey-dark) 10px, var(--honey-dark) 20px);
+        }
+        .result-paper::before { top: 0; }
+        .result-paper::after { bottom: 0; }
+        .result-paper.active {
+            width: 400px; height: 200px; opacity: 1; transform: scale(1);
+            border: 5px solid var(--choco-brown); border-radius: 10px; pointer-events: auto;
+        }
+        .result-content { text-align: center; opacity: 0; transition: opacity 0.3s ease 0.3s; }
+        .result-paper.active .result-content { opacity: 1; }
+        .result-id { font-size: 1.5rem; color: #AAA; margin-bottom: 5px; }
+        .result-name { font-size: 3.5rem; color: var(--honey-shadow); text-shadow: 2px 2px 0px #FFD54F; }
+
+        /* --- 动画 --- */
+        @keyframes chaos-fly {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            20% { transform: translate(var(--x1), var(--y1)) rotate(70deg); }
+            40% { transform: translate(var(--x2), var(--y2)) rotate(140deg); }
+            60% { transform: translate(var(--x3), var(--y3)) rotate(210deg); }
+            80% { transform: translate(var(--x4), var(--y4)) rotate(280deg); }
+            100% { transform: translate(0, 0) rotate(360deg); }
+        }
+        .ball.chaos-active { animation: chaos-fly 0.5s infinite alternate ease-in-out; }
+        @keyframes shake-machine {
+            0% { transform: rotate(0deg); } 25% { transform: rotate(2deg); }
+            50% { transform: rotate(-2deg); } 75% { transform: rotate(1deg); } 100% { transform: rotate(0deg); }
+        }
+        .machine-wrapper.shaking { animation: shake-machine 0.3s infinite; }
+        @keyframes drop-down-anim {
+            0% { top: 200px; opacity: 1; transform: translateX(-50%) scale(1); }
+            40% { top: 380px; transform: translateX(-50%) scale(0.9); }
+            60% { top: 370px; transform: translateX(-50%) scale(0.9); }
+            100% { top: 400px; opacity: 1; transform: translateX(-50%) scale(0.8); }
+        }
+        .dropping { animation: drop-down-anim 0.8s forwards ease-in; z-index: 20; }
+
+        /* --- 弹窗样式 --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(93, 64, 55, 0.6); display: none;
+            justify-content: center; align-items: center; z-index: 300; backdrop-filter: blur(4px);
+        }
+        .settings-content {
+            background: #FFF; width: 90%; max-width: 550px; height: 85%;
+            border-radius: 20px; padding: 20px; display: flex; flex-direction: column;
+            box-shadow: 0 10px 0 var(--choco-brown); border: 4px solid var(--choco-brown);
+        }
+        .dialog-content {
+            background: #FFF; width: 300px; padding: 25px;
+            border-radius: 20px; display: flex; flex-direction: column; align-items: center;
+            box-shadow: 0 10px 0 var(--choco-brown); border: 4px solid var(--choco-brown);
+            text-align: center; z-index: 500;
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px dashed #ddd; padding-bottom: 10px; width: 100%; }
+        .modal-title { font-size: 1.8rem; color: var(--choco-brown); }
+        .close-modal-btn { background: #FFCCBC; border: 2px solid var(--choco-brown); color: var(--choco-brown); padding: 5px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: var(--main-font); }
+        .table-container { flex: 1; overflow-y: auto; margin-bottom: 15px; width: 100%; overscroll-behavior: contain; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: var(--honey-yellow); position: sticky; top: 0; color: var(--choco-brown); padding: 10px; text-align: left; }
+        td { padding: 8px; border-bottom: 1px solid #eee; color: #555; text-align: left; }
+        .action-row { display: flex; gap: 10px; padding-top: 10px; border-top: 2px dashed #ddd; flex-wrap: wrap; width: 100%; }
+        .input-style { padding: 10px; border: 2px solid var(--choco-brown); border-radius: 10px; font-family: inherit; background: #FFF8E1; }
+        .action-btn { border: 2px solid var(--choco-brown); border-radius: 10px; padding: 8px 15px; cursor: pointer; font-weight: bold; flex: 1; min-width: 80px; color: white; transition: all 0.1s; margin-top: 5px; font-family: var(--main-font); }
+        .action-btn:active { transform: translateY(2px); }
+        .add-btn-style { background: var(--honey-dark); }
+        .import-btn-style { background: var(--matcha-green); }
+        .dialog-title { font-size: 1.4rem; color: var(--choco-brown); margin: 0 0 15px 0; }
+        .dialog-msg { font-size: 1rem; color: #666; margin-bottom: 20px; }
+        .dialog-btn-group { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+        .dialog-btn-row { display: flex; gap: 15px; width: 100%; justify-content: center; }
+        .btn-override { background: var(--danger-red); }
+        .btn-append { background: var(--matcha-green); }
+        .btn-cancel { background: var(--gray-cancel); color: #FFF; }
+        .btn-ok { background: var(--honey-yellow); color: var(--choco-brown); }
+    </style>
+</head>
+<body>
+
+    <!-- 返回主页按钮 (新增) -->
+    <a href="index.html" class="top-btn home-btn">
+        <svg viewBox="0 0 24 24">
+            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+        </svg>
+    </a>
+
+    <!-- 设置按钮 -->
+    <div class="top-btn settings-btn" id="openSettings"><div class="top-btn-icon">⚙️</div></div>
+
+    <div class="machine-wrapper" id="machineWrapper">
+        <div class="machine-lid"></div>
+        <div class="globe" id="globe"></div>
+        <div class="drop-ball" id="dropBall"></div>
+        <div class="base">
+            <div class="knob-area" id="knobArea"><div class="knob"></div></div>
+            <div class="exit-door"></div>
+        </div>
+        <div class="controls">
+            <button class="btn btn-start" id="startBtn">开始扭蛋</button>
+            <button class="btn btn-reset" id="resetBtn">重置</button>
+        </div>
+    </div>
+
+    <div class="result-overlay" id="resultOverlay">
+        <div class="result-paper" id="resultPaper">
+            <div class="result-content">
+                <div class="result-id" id="resultId">NO.1</div>
+                <div class="result-name" id="resultName">姓名</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 1. 设置主弹窗 -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="settings-content">
+            <div class="modal-header">
+                <span class="modal-title">📝 学生名单设置</span>
+                <button class="close-modal-btn" id="closeSettings">关闭</button>
+            </div>
+            <div class="table-container">
+                <table id="studentTable">
+                    <thead><tr><th width="20%">序号</th><th width="50%">姓名</th><th width="30%">操作</th></tr></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+            
+            <div class="action-row" style="margin-bottom:10px;">
+                <input type="number" id="newId" class="input-style" placeholder="序号" style="width: 50px;">
+                <input type="text" id="newName" class="input-style" placeholder="姓名" style="flex: 1;">
+                <button class="action-btn add-btn-style" id="addStudent">添加</button>
+            </div>
+
+            <div class="action-row">
+                <input type="file" id="excelInput" accept=".xlsx, .xls" style="display: none;">
+                <button class="action-btn import-btn-style" id="triggerImport">📁 批量导入 Excel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 导入确认弹窗 -->
+    <div class="modal-overlay" id="importModal" style="z-index: 400;">
+        <div class="dialog-content">
+            <h3 class="dialog-title">📊 导入选项</h3>
+            <p id="importMsg" class="dialog-msg">检测到数据...</p>
+            <div class="dialog-btn-group">
+                <button class="action-btn btn-override" id="btnOverride">🔴 覆盖 (清空旧数据)</button>
+                <button class="action-btn btn-append" id="btnAppend">🟢 追加 (保留旧数据)</button>
+                <button class="action-btn btn-cancel" id="btnCancelImport">⚪ 取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. 通用提示弹窗 (Alert) -->
+    <div class="modal-overlay" id="alertModal" style="z-index: 500;">
+        <div class="dialog-content">
+            <h3 class="dialog-title">🍯 提示</h3>
+            <p id="alertMsg" class="dialog-msg">这是一个提示</p>
+            <button class="action-btn btn-ok" onclick="closeAlert()">知道了</button>
+        </div>
+    </div>
+
+    <!-- 4. 通用确认弹窗 (Confirm) -->
+    <div class="modal-overlay" id="confirmModal" style="z-index: 500;">
+        <div class="dialog-content">
+            <h3 class="dialog-title">🤔 确认操作</h3>
+            <p id="confirmMsg" class="dialog-msg">确定要这样做吗？</p>
+            <div class="dialog-btn-row">
+                <button class="action-btn btn-override" id="btnConfirmYes">确定</button>
+                <button class="action-btn btn-cancel" onclick="closeConfirm()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('dragstart', (e) => { if (e.target.tagName !== 'INPUT') e.preventDefault(); });
+
+        const defaultStudents = [
+            {id: 1, name: "同学A"}, {id: 2, name: "同学B"}, {id: 3, name: "同学C"}, {id: 4, name: "同学D"},
+            {id: 5, name: "同学E"}, {id: 6, name: "同学F"}, {id: 7, name: "同学G"}, {id: 8, name: "同学H"}
+        ];
+
+        let students = JSON.parse(localStorage.getItem('studentList_v8')) || defaultStudents;
+
+        const ballColors = [
+            { h: '#FFCDD2', b: '#E57373', s: '#B71C1C' }, { h: '#C8E6C9', b: '#81C784', s: '#2E7D32' }, 
+            { h: '#BBDEFB', b: '#64B5F6', s: '#1565C0' }, { h: '#FFF9C4', b: '#FFF176', s: '#FBC02D' }, 
+            { h: '#E1BEE7', b: '#BA68C8', s: '#7B1FA2' }, { h: '#FFE0B2', b: '#FFB74D', s: '#E65100' } 
+        ];
+
+        const globe = document.getElementById('globe');
+        const machineWrapper = document.getElementById('machineWrapper');
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const knobArea = document.getElementById('knobArea');
+        const dropBall = document.getElementById('dropBall');
+        const resultPaper = document.getElementById('resultPaper');
+        const resultId = document.getElementById('resultId');
+        const resultName = document.getElementById('resultName');
+        const alertModal = document.getElementById('alertModal');
+        const alertMsg = document.getElementById('alertMsg');
+        
+        function myAlert(msg) { alertMsg.innerText = msg; alertModal.style.display = 'flex'; }
+        window.closeAlert = function() { alertModal.style.display = 'none'; }
+
+        const confirmModal = document.getElementById('confirmModal');
+        const confirmMsg = document.getElementById('confirmMsg');
+        const btnConfirmYes = document.getElementById('btnConfirmYes');
+        let confirmCallback = null;
+
+        function myConfirm(msg, callback) { confirmMsg.innerText = msg; confirmCallback = callback; confirmModal.style.display = 'flex'; }
+        window.closeConfirm = function() { confirmModal.style.display = 'none'; confirmCallback = null; }
+        btnConfirmYes.addEventListener('click', () => { if(confirmCallback) confirmCallback(); closeConfirm(); });
+
+        function fillMachine() {
+            globe.innerHTML = '';
+            let ballCount = Math.max(20, Math.min(40, students.length));
+            for(let i=0; i<ballCount; i++) {
+                const ball = document.createElement('div');
+                ball.classList.add('ball');
+                const size = Math.random() * 15 + 30;
+                ball.style.width = `${size}px`; ball.style.height = `${size}px`;
+                const colorSet = ballColors[Math.floor(Math.random() * ballColors.length)];
+                ball.style.setProperty('--highlight', colorSet.h);
+                ball.style.setProperty('--base', colorSet.b);
+                ball.style.setProperty('--shadow', colorSet.s);
+                ball.style.left = Math.random() * 210 + 'px';
+                ball.style.top = Math.random() * 180 + 40 + 'px';
+                ball.style.transform = `rotate(${Math.random() * 360}deg)`;
+                globe.appendChild(ball);
+            }
+        }
+
+        let isRunning = false;
+        startBtn.addEventListener('click', () => {
+            if(isRunning) return;
+            if(students.length === 0) { myAlert('名单为空！请在设置中导入名单。'); return; }
+            isRunning = true;
+            startBtn.disabled = true;
+            machineWrapper.classList.add('shaking');
+            knobArea.classList.add('active');
+            const balls = document.querySelectorAll('.ball');
+            balls.forEach(ball => {
+                const range = 80;
+                ball.style.setProperty('--x1', (Math.random() * range * 2 - range) + 'px');
+                ball.style.setProperty('--y1', (Math.random() * range * 2 - range) + 'px');
+                ball.style.setProperty('--x2', (Math.random() * range * 2 - range) + 'px');
+                ball.style.setProperty('--y2', (Math.random() * range * 2 - range) + 'px');
+                ball.style.setProperty('--x3', (Math.random() * range * 2 - range) + 'px');
+                ball.style.setProperty('--y3', (Math.random() * range * 2 - range) + 'px');
+                ball.style.setProperty('--x4', (Math.random() * range * 2 - range) + 'px');
+                ball.style.setProperty('--y4', (Math.random() * range * 2 - range) + 'px');
+                ball.classList.add('chaos-active');
+                ball.style.animationDelay = Math.random() * 0.1 + 's';
+            });
+
+            setTimeout(() => {
+                machineWrapper.classList.remove('shaking');
+                knobArea.classList.remove('active');
+                balls.forEach(ball => ball.classList.remove('chaos-active'));
+                const luckyStudent = students[Math.floor(Math.random() * students.length)];
+                const luckyColor = ballColors[Math.floor(Math.random() * ballColors.length)];
+                dropBall.style.display = 'block';
+                dropBall.style.setProperty('--highlight', luckyColor.h);
+                dropBall.style.background = `radial-gradient(circle at 30% 30%, ${luckyColor.h} 0%, ${luckyColor.b} 50%, ${luckyColor.s} 100%)`;
+                void dropBall.offsetWidth; 
+                dropBall.classList.add('dropping');
+                setTimeout(() => {
+                    dropBall.style.display = 'none';
+                    dropBall.classList.remove('dropping');
+                    resultId.innerText = `序号: ${luckyStudent.id}`;
+                    resultName.innerText = luckyStudent.name;
+                    resultPaper.classList.add('active');
+                    startBtn.style.display = 'none';
+                    resetBtn.style.display = 'inline-block';
+                    isRunning = false;
+                }, 800);
+            }, 1500); 
+        });
+
+        resetBtn.addEventListener('click', () => {
+            resultPaper.classList.remove('active');
+            setTimeout(() => {
+                resetBtn.style.display = 'none';
+                startBtn.style.display = 'inline-block';
+                startBtn.disabled = false;
+                fillMachine(); 
+            }, 500);
+        });
+
+        const settingsModal = document.getElementById('settingsModal');
+        const tableBody = document.getElementById('tableBody');
+        function renderTable() {
+            tableBody.innerHTML = '';
+            students.forEach((s, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${s.id}</td><td>${s.name}</td><td><button style="background:#FFAB91; border:1px solid #BF360C; color:#fff; border-radius:5px; cursor:pointer;" onclick="delStudent(${index})">删除</button></td>`;
+                tableBody.appendChild(tr);
+            });
+            localStorage.setItem('studentList_v8', JSON.stringify(students));
+            fillMachine();
+        }
+
+        document.getElementById('openSettings').addEventListener('click', () => { renderTable(); settingsModal.style.display = 'flex'; });
+        document.getElementById('closeSettings').addEventListener('click', () => { settingsModal.style.display = 'none'; });
+        settingsModal.addEventListener('click', (e) => { if(e.target === settingsModal) settingsModal.style.display = 'none'; });
+
+        document.getElementById('addStudent').addEventListener('click', () => {
+            const id = document.getElementById('newId').value.trim();
+            const name = document.getElementById('newName').value.trim();
+            if(id && name) {
+                students.push({id, name});
+                students.sort((a,b) => parseInt(a.id) - parseInt(b.id)); 
+                document.getElementById('newId').value = ''; document.getElementById('newName').value = '';
+                renderTable();
+            } else { myAlert("请输入完整的序号和姓名！"); }
+        });
+
+        window.delStudent = function(index) { myConfirm("确定要删除这位同学吗？", () => { students.splice(index, 1); renderTable(); }); };
+
+        const excelInput = document.getElementById('excelInput');
+        const triggerImportBtn = document.getElementById('triggerImport');
+        const importModal = document.getElementById('importModal');
+        const importMsg = document.getElementById('importMsg');
+        const btnOverride = document.getElementById('btnOverride');
+        const btnAppend = document.getElementById('btnAppend');
+        const btnCancelImport = document.getElementById('btnCancelImport');
+        let tempImportStudents = [];
+
+        triggerImportBtn.addEventListener('click', () => { excelInput.click(); });
+        excelInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                try {
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+                    tempImportStudents = [];
+                    jsonData.forEach((row) => {
+                        if(row[0] != undefined && row[1] != undefined) {
+                            if(String(row[0]).includes('序号') || String(row[1]).includes('姓名')) return;
+                            tempImportStudents.push({ id: String(row[0]).trim(), name: String(row[1]).trim() });
+                        }
+                    });
+                    if(tempImportStudents.length === 0) { myAlert("未检测到有效数据，请检查文件格式。"); excelInput.value = ''; return; }
+                    importMsg.innerText = `解析成功！发现 ${tempImportStudents.length} 名学生。`;
+                    importModal.style.display = 'flex';
+                } catch (err) { console.error(err); myAlert("文件解析失败，请确保是标准的 xls 或 xlsx 文件。"); excelInput.value = ''; }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        btnOverride.addEventListener('click', () => { students = tempImportStudents; students.sort((a,b) => parseInt(a.id) - parseInt(b.id)); renderTable(); closeImportModal(); myAlert(`已覆盖导入！当前共 ${students.length} 人。`); });
+        btnAppend.addEventListener('click', () => { students = students.concat(tempImportStudents); students.sort((a,b) => parseInt(a.id) - parseInt(b.id)); renderTable(); closeImportModal(); myAlert(`已追加导入！当前共 ${students.length} 人。`); });
+        btnCancelImport.addEventListener('click', () => { closeImportModal(); });
+        function closeImportModal() { importModal.style.display = 'none'; excelInput.value = ''; tempImportStudents = []; }
+
+        fillMachine();
+    </script>
+</body>
+</html>
