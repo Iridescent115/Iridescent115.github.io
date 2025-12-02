@@ -48,15 +48,17 @@
     <div id="container"></div>
     <video id="video"></video>
 
+    <!-- MediaPipe Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
     <!-- Core Libraries -->
     <script type="importmap">
         {
             "imports": {
                 "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
-                "@mediapipe/hands": "https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js",
-                "@mediapipe/drawing_utils": "https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675469240/drawing_utils.js",
-                "@mediapipe/camera_utils": "https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675469240/camera_utils.js"
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
             }
         }
     </script>
@@ -65,9 +67,6 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import GUI from 'https://cdn.jsdelivr.net/npm/lil-gui@0.19.1/dist/lil-gui.esm.js';
-        import { Hands, HAND_CONNECTIONS } from '@mediapipe/hands';
-        import { drawConnectors, drawLandmarks } from '@mediapipe/drawing_utils';
-        import { Camera } from '@mediapipe/camera_utils';
 
         // --- Basic Setup ---
         const loadingEl = document.getElementById('loading');
@@ -123,7 +122,7 @@
 
         function setupHandTracking() {
             loadingMessageEl.innerText = '初始化手势识别...';
-            const hands = new Hands({
+            const hands = new window.Hands({
                 locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`
             });
 
@@ -136,7 +135,7 @@
 
             hands.onResults(onHandResults);
 
-            const cameraUtil = new Camera(videoElement, {
+            const cameraUtil = new window.Camera(videoElement, {
                 onFrame: async () => {
                     await hands.send({ image: videoElement });
                 },
