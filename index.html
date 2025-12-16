@@ -3,230 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的游戏仓库</title>
+    <title>我的个人主页</title>
     <style>
-        /* 引入科幻风格字体 */
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
-
-        /* 全局样式 */
         body {
-            background-color: #0d0d0d;
-            background-image: linear-gradient(0deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent);
-            background-size: 50px 50px;
-            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f0f2f5;
             margin: 0;
-            font-family: 'Orbitron', 'Microsoft YaHei', sans-serif;
+            padding: 40px 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-height: 100vh;
         }
-
-        /* 标题样式 */
+        
         h1 {
-            margin-top: 50px;
+            color: #1a1a1a;
             margin-bottom: 40px;
-            font-size: 2.5rem;
-            color: #fff;
-            text-shadow: 0 0 10px #00ffcc, 0 0 20px #00ffcc;
-            letter-spacing: 3px;
-            text-align: center;
-            font-weight: 700;
         }
 
-        /* 游戏卡片网格容器 */
-        .game-grid {
+        .grid-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 30px;
-            width: 90%;
-            max-width: 1000px;
-            padding: 20px;
-            box-sizing: border-box;
+            gap: 24px;
+            width: 100%;
+            max-width: 1200px;
         }
 
-        /* 单个游戏卡片 */
-        .game-card {
-            background: linear-gradient(145deg, #1a1a1a, #222);
-            border: 1px solid #333;
-            border-radius: 15px;
-            padding: 30px 20px;
+        .nav-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
             display: flex;
             flex-direction: column;
             align-items: center;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            text-decoration: none; /* 去掉链接下划线 */
-            color: #fff;
-            cursor: pointer;
+            text-align: center;
+            border: 2px solid transparent;
         }
 
-        /* 卡片悬停效果 */
-        .game-card:hover {
-            transform: translateY(-8px);
-            border-color: #00ffcc;
-            box-shadow: 0 0 25px rgba(0, 255, 204, 0.2);
+        .nav-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.1);
         }
 
-        /* 游戏图标圆形区域 */
-        .icon-box {
-            width: 80px;
-            height: 80px;
-            background: rgba(0, 0, 0, 0.5);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .card-icon {
+            font-size: 48px;
             margin-bottom: 20px;
-            border: 2px solid #00ffcc;
-            box-shadow: 0 0 10px rgba(0, 255, 204, 0.2);
-            transition: transform 0.3s ease;
         }
 
-        .game-card:hover .icon-box {
-            transform: scale(1.1);
-            background: rgba(0, 255, 204, 0.1);
-        }
-
-        .icon-box svg {
-            width: 40px;
-            height: 40px;
-            fill: #00ffcc;
-        }
-
-        /* 文字内容 */
-        .game-title {
-            font-size: 1.4rem;
-            margin: 10px 0;
-            color: #00ffcc;
+        .card-title {
+            font-size: 1.5rem;
             font-weight: bold;
-            text-shadow: 0 0 5px rgba(0, 255, 204, 0.5);
+            margin-bottom: 10px;
+            color: #333;
         }
 
-        .game-desc {
-            font-size: 0.9rem;
-            color: #aaa;
-            text-align: center;
-            margin-bottom: 25px;
-            line-height: 1.5;
-            font-family: 'Microsoft YaHei', sans-serif; /* 中文描述用黑体 */
-            min-height: 40px; /* 保持卡片高度一致 */
-        }
-
-        /* 游玩按钮 */
-        .play-btn {
-            background: transparent;
-            border: 1px solid #00ffcc;
-            color: #00ffcc;
-            padding: 10px 35px;
-            border-radius: 30px;
-            font-family: 'Orbitron', sans-serif;
-            transition: 0.3s;
-            text-transform: uppercase;
-            font-size: 0.9rem;
-            letter-spacing: 1px;
-        }
-
-        .game-card:hover .play-btn {
-            background: #00ffcc;
-            color: #000;
-            box-shadow: 0 0 15px #00ffcc;
-            font-weight: bold;
-        }
-
-        /* --- 敬请期待卡片样式 --- */
-        .coming-soon {
-            opacity: 0.5;
-            border-style: dashed;
-            cursor: default;
-        }
-        .coming-soon:hover {
-            transform: none;
-            box-shadow: none;
-            border-color: #333;
-        }
-        .coming-soon .icon-box {
-            border-color: #666;
-            box-shadow: none;
-        }
-        .coming-soon .icon-box svg {
-            fill: #666;
-        }
-        .coming-soon .game-title {
+        .card-desc {
             color: #666;
-            text-shadow: none;
+            line-height: 1.5;
         }
 
-        /* 页脚 */
-        footer {
-            margin-top: auto;
-            padding: 30px;
-            color: #444;
-            font-size: 0.8rem;
-            text-align: center;
+        /* Bilibili Card Special Style */
+        .bili-card {
+            border-color: #FB7299;
+            background: linear-gradient(to bottom right, #fff, #fff5f7);
+        }
+        .bili-card .card-title {
+            color: #FB7299;
         }
     </style>
 </head>
 <body>
-
-    <h1>ARCADE CENTER</h1>
-
-    <div class="game-grid">
-        
-        <!-- 游戏 1: 贪吃蛇 -->
-        <a href="snake.html" class="game-card">
-            <div class="icon-box">
-                <!-- 贪吃蛇图标 -->
-                <svg viewBox="0 0 24 24">
-                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m-8.5 12c0 1.9-1.3 3.4-3.1 3.9L6 14.6c.9-.4 1.5-1.3 1.5-2.3 0-1.2-1.1-2.2-2.3-1.9l-.6-.1c-.9-.2-1.5-.9-1.5-1.8 0-1.1.9-2 2-2 1.3 0 2.4 1.1 2.4 2.4h1.7c0-2.2-1.8-4-4-4S1.2 6.8 1.2 9c0 1.8 1.2 3.2 2.9 3.8l.6 3.6c-1 .4-1.7 1.4-1.7 2.6 0 1.7 1.3 3 3 3s3-1.3 3-3V15h1.5z M20 18h-2.5v-2H20v2z M17 15h-2v-2h2v2z"/>
-                </svg>
-            </div>
-            <div class="game-title">Neon Snake</div>
-            <div class="game-desc">经典的贪吃蛇玩法，配以炫酷的霓虹视觉效果、多色主题及触控支持。</div>
-            <div class="play-btn">Play Now</div>
+    <h1>我的个人主页</h1>
+    
+    <div class="grid-container">
+        <!-- 新增：Bilibili 看板入口 -->
+        <a href="bilibili.html" class="nav-card bili-card">
+            <div class="card-icon">📊</div>
+            <div class="card-title">Bilibili 实时看板</div>
+            <div class="card-desc">关注 UP 主粉丝数、最新视频数据的实时监控面板。</div>
         </a>
 
-        <!-- 游戏 2: 幸运扭蛋机 -->
-        <a href="gachapon.html" class="game-card">
-            <div class="icon-box">
-                <!-- 扭蛋机图标 -->
-                <svg viewBox="0 0 24 24">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8zm-5.5-2.5l7.51-3.21 2.5-7.79H10l-3.5 11z" />
-                </svg>
-            </div>
-            <div class="game-title">Lucky Gachapon</div>
-            <div class="game-desc">可爱的 3D 风格扭蛋机，支持 Excel 批量导入名单，年会抽奖、课堂点名必备！</div>
-            <div class="play-btn">Play Now</div>
+        <!-- 原有小游戏入口 -->
+        <a href="snake.html" class="nav-card">
+            <div class="card-icon">🐍</div>
+            <div class="card-title">霓虹贪吃蛇</div>
+            <div class="card-desc">经典的贪吃蛇游戏，带有霓虹特效和自定义主题。</div>
         </a>
 
-        <!-- 游戏 3: 手势粒子系统 -->
-        <a href="particles.html" class="game-card">
-            <div class="icon-box">
-                <!-- 手势粒子图标 -->
-                <svg viewBox="0 0 24 24">
-                   <path d="M13.5 20.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5-1.5.67-1.5 1.5zM10.5 22c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM18 16.5c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5-1.5.67-1.5 1.5.67 1.5 1.5 1.5zM1.07 10.59C2.43 5.58 6.67 2.25 11.5 2.03v-.53c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v.53c4.83.22 9.07 3.55 10.43 8.56.1.36-.14.71-.51.71H1.58c-.37 0-.61-.35-.51-.71zM3.49 13.5h17.02c-.15-2.9-1.39-5.45-3.26-7.33-1.88-1.88-4.43-3.12-7.33-3.26-2.9.14-5.45 1.38-7.33 3.26C3.69 7.9 3.54 9.18 3.49 10.5h.01v3z"/>
-                </svg>
-            </div>
-            <div class="game-title">Gesture Particles</div>
-            <div class="game-desc">通过摄像头进行实时手势识别，控制3D粒子系统的聚散、缩放和移动。</div>
-            <div class="play-btn">Play Now</div>
+        <a href="particles.html" class="nav-card">
+            <div class="card-icon">✨</div>
+            <div class="card-title">3D 手势粒子</div>
+            <div class="card-desc">基于 MediaPipe 和 Three.js 的手势识别互动粒子效果。</div>
         </a>
 
-        <!-- 占位符: 更多游戏 -->
-        <div class="game-card coming-soon">
-            <div class="icon-box">
-                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-            </div>
-            <div class="game-title">Coming Soon</div>
-            <div class="game-desc">更多精彩游戏正在开发中...<br>敬请期待</div>
-        </div>
-
+        <a href="gachapon.html" class="nav-card">
+            <div class="card-icon">🍯</div>
+            <div class="card-title">幸运扭蛋机</div>
+            <div class="card-desc">模拟扭蛋机抽奖，支持 Excel 导入名单。</div>
+        </a>
     </div>
-
-    <footer>
-        &copy; 2023 My Game Arcade
-    </footer>
-
 </body>
 </html>

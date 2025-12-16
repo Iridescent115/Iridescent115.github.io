@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bilibili 重点UP主实时看板</title>
+    <style>
+        :root {
+            --primary-color: #FB7299;
+            --secondary-color: #00AEEC;
+            --bg-color: #f1f2f3;
+            --card-bg: #ffffff;
+            --text-main: #18191c;
+            --text-secondary: #9499a0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: var(--text-main);
+            margin-bottom: 40px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h1 span {
+            color: var(--primary-color);
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
+            overflow: hidden;
+            border-top: 4px solid transparent;
+            cursor: pointer;
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+            border-top-color: var(--primary-color);
+        }
+
+        /* 头像样式 */
+        .avatar-container {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 15px;
+            position: relative;
+        }
+
+        .avatar {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            object-fit: cover;
+            background-color: #f0f0f0;
+            transition: transform 0.3s;
+        }
+        
+        .card:hover .avatar {
+            transform: scale(1.05);
+            border-color: var(--primary-color);
+        }
+
+        .up-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .up-uid {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            background: #f6f7f8;
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        .count {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--primary-color);
+            line-height: 1.2;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -1px;
+            margin-bottom: 5px;
+        }
+
+        .label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .footer-status {
+            margin-top: 50px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        /* 加载动画 */
+        .loading-pulse {
+            animation: pulse 1.5s infinite;
+            color: #ccc;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+
+        /* 视频卡片样式 */
+        .video-section {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #f0f0f0;
+            text-align: left;
+        }
+
+        .video-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .video-card-inner {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            text-decoration: none;
+            color: inherit;
+            transition: opacity 0.2s;
+        }
+        
+        .video-card-inner:hover {
+            opacity: 0.8;
+        }
+
+        .video-cover-box {
+            position: relative;
+            width: 100%;
+            padding-top: 62.5%; /* 16:10 */
+            border-radius: 6px;
+            overflow: hidden;
+            background: #e7e7e7;
+        }
+
+        .video-cover-img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-duration {
+            position: absolute;
+            bottom: 6px;
+            right: 6px;
+            background: rgba(0,0,0,0.65);
+            color: #fff;
+            font-size: 11px;
+            padding: 1px 4px;
+            border-radius: 2px;
+        }
+
+        .video-title {
+            font-size: 0.9rem;
+            line-height: 1.4;
+            color: var(--text-main);
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            height: 2.8em;
+        }
+
+        .video-stats {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .video-placeholder {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            padding: 10px 0;
+        }
+
+        /* 返回主页按钮 */
+        .home-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 44px;
+            height: 44px;
+            background: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-decoration: none;
+            color: var(--text-secondary);
+            transition: all 0.3s;
+            z-index: 100;
+        }
+        .home-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            color: var(--primary-color);
+        }
+        .home-btn svg {
+            fill: currentColor;
+            width: 24px;
+            height: 24px;
+        }
+
+    </style>
+</head>
+<body>
+    <a href="index.html" class="home-btn" title="返回主页">
+        <svg viewBox="0 0 24 24">
+            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+        </svg>
+    </a>
+
+    <h1>📊 Bilibili <span>粉丝实时追踪</span></h1>
+
+    <div class="grid-container" id="cards-area">
+        <!-- JS 将在这里生成卡片 -->
+    </div>
+
+    <div class="footer-status">
+        最后更新: <span id="last-update-time">--:--:--</span><br>
+        数据来源: Bilibili API (via CodeTabs Proxy)
+    </div>
+
+    <script>
+        // UP 主列表
+        const upList = [
+            { name: "麻薯波比呀", uid: 703186600 },
+            { name: "世界见闻录", uid: 316627722 },
+            { name: "燕三嘤嘤嘤", uid: 430426421 },
+            { name: "小Lin说", uid: 520819684 }
+        ];
+
+        const container = document.getElementById('cards-area');
+        const timeDisplay = document.getElementById('last-update-time');
+
+        // 1. 初始化界面 (分离渲染和数据加载)
+        async function init() {
+            // 第一步：立即生成所有卡片框架
+            renderCards();
+
+            // 第二步：双轨并行加载数据
+            
+            // 轨道A：内容数据 (头像、视频) - 使用较快代理
+            loadContentQueue();
+
+            // 轨道B：统计数据 (粉丝数) - 使用较慢代理，严格控制频率
+            loadStatsQueue();
+
+            // 之后每 10 秒刷新一次粉丝数
+            setInterval(loadStatsQueue, 10000);
+        }
+
+        // 渲染卡片 DOM
+        function renderCards() {
+            container.innerHTML = ''; // 清空容器
+            for (const up of upList) {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.id = `card-${up.uid}`;
+                
+                // 点击卡片跳转到 B 站个人主页
+                card.onclick = () => window.open(`https://space.bilibili.com/${up.uid}`, '_blank');
+                
+                // 默认显示一个灰色的占位图
+                // referrerpolicy="no-referrer" 是关键，否则 B 站图片会报 403 错误
+                card.innerHTML = `
+                    <div class="avatar-container">
+                        <img src="https://i0.hdslb.com/bfs/face/member/noface.jpg" 
+                             class="avatar" 
+                             id="avatar-${up.uid}" 
+                             alt="${up.name}"
+                             referrerpolicy="no-referrer"
+                             onerror="this.src='https://i0.hdslb.com/bfs/face/member/noface.jpg'">
+                    </div>
+                    <div class="up-name">${up.name}</div>
+                    <div class="up-uid">UID: ${up.uid}</div>
+                    <div>
+                        <div class="count" id="count-${up.uid}"><span class="loading-pulse">---</span></div>
+                        <div class="label">粉丝数</div>
+                    </div>
+                    
+                    <!-- 最新视频区域 -->
+                    <div class="video-section" id="video-section-${up.uid}">
+                        <div class="video-label">最新投稿</div>
+                        <div class="video-placeholder" id="vid-placeholder-${up.uid}">正在获取最新视频...</div>
+                        <div class="video-card-inner" id="video-link-${up.uid}" style="display: none;">
+                            <div class="video-cover-box">
+                                <img class="video-cover-img" id="vid-img-${up.uid}" referrerpolicy="no-referrer">
+                                <div class="video-duration" id="vid-dur-${up.uid}"></div>
+                            </div>
+                            <div class="video-title" id="vid-title-${up.uid}"></div>
+                            <div class="video-stats" id="vid-stat-${up.uid}"></div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            }
+        }
+
+        // 队列A：加载头像和视频 (快代理)
+        async function loadContentQueue() {
+            for (const up of upList) {
+                fetchProfile(up.uid);
+                fetchLatestVideo(up.uid);
+                // 间隔增加到 1000ms，因为视频改用了 codetabs，需要防止请求过快被封
+                await new Promise(r => setTimeout(r, 1000));
+            }
+        }
+
+        // 队列B：加载粉丝数 (慢代理)
+        async function loadStatsQueue() {
+            const now = new Date();
+            if(timeDisplay) timeDisplay.textContent = now.toLocaleTimeString();
+
+            for (const up of upList) {
+                const countEl = document.getElementById(`count-${up.uid}`);
+                const num = await fetchFollowerCount(up.uid);
+
+                if (num !== null) {
+                    countEl.textContent = num.toLocaleString();
+                    countEl.style.color = '#FB7299'; 
+                } else {
+                    if(countEl.innerText.includes('---')) {
+                         countEl.textContent = "Error";
+                         countEl.style.color = "#999";
+                    }
+                }
+                // 间隔长一点 (1.5秒)，保护 codetabs 代理不被封
+                await new Promise(r => setTimeout(r, 1500));
+            }
+        }
+
+        // 2. 获取头像 (使用 card 接口)
+        async function fetchProfile(uid) {
+            const url = `https://api.bilibili.com/x/web-interface/card?mid=${uid}`;
+            // 改用 allorigins (较快)
+            const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+
+            try {
+                const res = await fetch(proxy);
+                const json = await res.json();
+                
+                if (json && json.data && json.data.card) {
+                    // 确保使用 https，避免混合内容警告
+                    const avatarUrl = json.data.card.face.replace('http:', 'https:');
+                    // 更新图片 src
+                    const imgEl = document.getElementById(`avatar-${uid}`);
+                    if (imgEl) imgEl.src = avatarUrl;
+                }
+            } catch (e) {
+                console.error(`头像获取失败 UID:${uid}`, e);
+            }
+        }
+
+        // 新增：获取最新视频
+        async function fetchLatestVideo(uid) {
+            // B站个人空间视频搜索接口
+            // 增加时间戳防止缓存
+            const url = `https://api.bilibili.com/x/space/arc/search?mid=${uid}&ps=1&pn=1&t=${Date.now()}`;
+            // 改回 codetabs (更稳定)，allorigins 对搜索接口经常超时
+            const proxy = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`;
+
+            try {
+                // 设置 5 秒超时，防止一直显示“正在获取...”
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                const res = await fetch(proxy, { signal: controller.signal });
+                clearTimeout(timeoutId); // 清除超时定时器
+                
+                const json = await res.json();
+
+                if (json.code === 0 && json.data.list.vlist.length > 0) {
+                    const v = json.data.list.vlist[0];
+                    
+                    // 数据处理
+                    const title = v.title;
+                    const pic = v.pic.replace('http:', 'https:');
+                    const length = v.length;
+                    const play = v.play > 10000 ? (v.play/10000).toFixed(1) + '万' : v.play;
+                    const bvid = v.bvid;
+                    
+                    // DOM 更新
+                    const link = document.getElementById(`video-link-${uid}`);
+                    const placeholder = document.getElementById(`vid-placeholder-${uid}`);
+                    const img = document.getElementById(`vid-img-${uid}`);
+                    const dur = document.getElementById(`vid-dur-${uid}`);
+                    const tit = document.getElementById(`vid-title-${uid}`);
+                    const stat = document.getElementById(`vid-stat-${uid}`);
+
+                    if (link) {
+                        link.style.display = 'flex';
+                        if (placeholder) placeholder.style.display = 'none';
+                        
+                        img.src = pic;
+                        dur.textContent = length;
+                        tit.textContent = title;
+                        stat.innerHTML = `<span>▶ ${play}</span>`;
+                        
+                        // 点击事件：阻止冒泡，打开视频
+                        link.onclick = (e) => {
+                            e.stopPropagation();
+                            window.open(`https://www.bilibili.com/video/${bvid}`, '_blank');
+                        };
+                    }
+                }
+            } catch (e) {
+                // 区分是超时错误还是其他错误
+                const errorMsg = e.name === 'AbortError' ? '请求超时' : '加载失败';
+                console.error(`视频获取异常 UID:${uid}`, e);
+                
+                const placeholder = document.getElementById(`vid-placeholder-${uid}`);
+                if (placeholder) placeholder.textContent = errorMsg;
+            }
+        }
+
+        // 3. 获取粉丝数 (使用 stat 接口，轻量级)
+        async function fetchFollowerCount(uid) {
+            const url = `https://api.bilibili.com/x/relation/stat?vmid=${uid}`;
+            // 保持使用 codetabs (较慢但稳定)
+            const proxy = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`;
+
+            try {
+                const res = await fetch(proxy);
+                const json = await res.json();
+                if (json && json.data) {
+                    return json.data.follower;
+                }
+                return null;
+            } catch (e) {
+                console.error(`数据获取失败 UID:${uid}`, e);
+                return null;
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
