@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的个人主页</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        h1 {
+            color: #1a1a1a;
+            margin-bottom: 40px;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .nav-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            border: 2px solid transparent;
+        }
+
+        .nav-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+        }
+
+        .card-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .card-desc {
+            color: #666;
+            line-height: 1.5;
+        }
+
+        /* Bilibili Card Special Style */
+        .bili-card {
+            border-color: #FB7299;
+            background: linear-gradient(to bottom right, #fff, #fff5f7);
+        }
+        .bili-card .card-title {
+            color: #FB7299;
+        }
+    </style>
+</head>
+<body>
+    <h1>我的个人主页</h1>
+    
+    <div class="grid-container">
+        <!-- 新增：Bilibili 看板入口 -->
+        <a href="bilibili.html" class="nav-card bili-card">
+            <div class="card-icon">📊</div>
+            <div class="card-title">Bilibili 实时看板</div>
+            <div class="card-desc">关注 UP 主粉丝数、最新视频数据的实时监控面板。</div>
+        </a>
+
+        <!-- 原有小游戏入口 -->
+        <a href="snake.html" class="nav-card">
+            <div class="card-icon">🐍</div>
+            <div class="card-title">霓虹贪吃蛇</div>
+            <div class="card-desc">经典的贪吃蛇游戏，带有霓虹特效和自定义主题。</div>
+        </a>
+
+        <a href="particles.html" class="nav-card">
+            <div class="card-icon">✨</div>
+            <div class="card-title">3D 手势粒子</div>
+            <div class="card-desc">基于 MediaPipe 和 Three.js 的手势识别互动粒子效果。</div>
+        </a>
+
+        <a href="gachapon.html" class="nav-card">
+            <div class="card-icon">🍯</div>
+            <div class="card-title">幸运扭蛋机</div>
+            <div class="card-desc">模拟扭蛋机抽奖，支持 Excel 导入名单。</div>
+        </a>
+    </div>
+</body>
+</html>

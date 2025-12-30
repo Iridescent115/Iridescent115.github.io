@@ -1,110 +1,489 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的个人主页</title>
+    <title>University Library Intelligent Service Framework - Prototype Demo</title>
+    <!-- Import Tailwind CSS (for rapid styling) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Import Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Import FontAwesome Icon Library -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: #f0f2f5;
-            margin: 0;
-            padding: 40px 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        /* Custom scrollbar style to make it look more like a native App */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
         }
         
-        h1 {
-            color: #1a1a1a;
-            margin-bottom: 40px;
+        /* Breathing animation for thinking state */
+        .pulse-animation {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
         }
 
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 24px;
-            width: 100%;
-            max-width: 1200px;
-        }
-
-        .nav-card {
-            background: #fff;
-            border-radius: 16px;
-            padding: 30px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            transition: transform 0.2s, box-shadow 0.2s;
-            cursor: pointer;
-            text-decoration: none;
-            color: inherit;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            border: 2px solid transparent;
-        }
-
-        .nav-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 24px rgba(0,0,0,0.1);
-        }
-
-        .card-icon {
-            font-size: 48px;
-            margin-bottom: 20px;
-        }
-
-        .card-title {
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #333;
-        }
-
-        .card-desc {
-            color: #666;
-            line-height: 1.5;
-        }
-
-        /* Bilibili Card Special Style */
-        .bili-card {
-            border-color: #FB7299;
-            background: linear-gradient(to bottom right, #fff, #fff5f7);
-        }
-        .bili-card .card-title {
-            color: #FB7299;
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
         }
     </style>
 </head>
-<body>
-    <h1>我的个人主页</h1>
-    
-    <div class="grid-container">
-        <!-- 新增：Bilibili 看板入口 -->
-        <a href="bilibili.html" class="nav-card bili-card">
-            <div class="card-icon">📊</div>
-            <div class="card-title">Bilibili 实时看板</div>
-            <div class="card-desc">关注 UP 主粉丝数、最新视频数据的实时监控面板。</div>
-        </a>
+<body class="bg-gray-100 h-screen overflow-hidden">
 
-        <!-- 原有小游戏入口 -->
-        <a href="snake.html" class="nav-card">
-            <div class="card-icon">🐍</div>
-            <div class="card-title">霓虹贪吃蛇</div>
-            <div class="card-desc">经典的贪吃蛇游戏，带有霓虹特效和自定义主题。</div>
-        </a>
+    <div id="app" class="flex h-full">
+        
+        <!-- 1. Sidebar -->
+        <div class="w-64 bg-slate-900 text-slate-300 flex flex-col shadow-xl hidden md:flex">
+            <!-- Logo Area -->
+            <div class="h-16 flex items-center px-6 bg-slate-800 border-b border-slate-700">
+                <i class="fa-solid fa-graduation-cap text-blue-400 text-xl mr-3"></i>
+                <span class="font-bold text-white text-lg tracking-wide">{{ uiText.appTitle }}</span>
+            </div>
 
-        <a href="particles.html" class="nav-card">
-            <div class="card-icon">✨</div>
-            <div class="card-title">3D 手势粒子</div>
-            <div class="card-desc">基于 MediaPipe 和 Three.js 的手势识别互动粒子效果。</div>
-        </a>
+            <!-- History -->
+            <div class="flex-1 overflow-y-auto py-4">
+                <div class="px-4 text-xs font-semibold text-slate-500 uppercase mb-2">{{ uiText.history }}</div>
+                
+                <div v-for="item in historyList" :key="item.id" 
+                     @click="loadConversation(item.id)"
+                     :class="['mx-2 p-3 rounded cursor-pointer transition-colors flex items-center mb-1', 
+                              currentConversationId === item.id ? 'bg-slate-800 border-l-4 border-blue-500 text-white' : 'hover:bg-slate-800 text-slate-300']">
+                    <i :class="[item.icon, 'mr-3 text-sm']"></i>
+                    <span class="text-sm truncate">{{ item.title }}</span>
+                </div>
+            </div>
 
-        <a href="gachapon.html" class="nav-card">
-            <div class="card-icon">🍯</div>
-            <div class="card-title">幸运扭蛋机</div>
-            <div class="card-desc">模拟扭蛋机抽奖，支持 Excel 导入名单。</div>
-        </a>
+            <!-- User Info -->
+            <div class="p-4 border-t border-slate-700 flex items-center">
+                <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xs">
+                    ST
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-white">{{ uiText.studentUser }}</p>
+                    <p class="text-xs text-slate-500">{{ uiText.dept }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Main Chat Area -->
+        <div class="flex-1 flex flex-col bg-white">
+            
+            <!-- Top Navigation Bar -->
+            <div class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm z-10">
+                <div class="flex items-center">
+                    <span class="text-lg font-bold text-slate-800">{{ uiText.mainTitle }}</span>
+                    <span class="ml-3 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                        {{ uiText.ragMode }}
+                    </span>
+                </div>
+                <div class="relative">
+                    <button class="text-slate-500 hover:text-slate-700 mr-4">
+                        <i class="fa-solid fa-eraser"></i> {{ uiText.clearContext }}
+                    </button>
+                    <button @click="showSettings = !showSettings" class="text-slate-500 hover:text-slate-700">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
+                    
+                    <!-- Settings Dropdown -->
+                    <div v-if="showSettings" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20 border border-gray-200">
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">{{ uiText.settingsTitle }}</div>
+                        <a href="#" @click.prevent="changeLanguage('en')" :class="['block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100', currentLang === 'en' ? 'bg-gray-50 font-bold' : '']">English</a>
+                        <a href="#" @click.prevent="changeLanguage('zh')" :class="['block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100', currentLang === 'zh' ? 'bg-gray-50 font-bold' : '']">中文 (Chinese)</a>
+                        <a href="#" @click.prevent="changeLanguage('ms')" :class="['block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100', currentLang === 'ms' ? 'bg-gray-50 font-bold' : '']">Bahasa Melayu</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Content Scroll Area -->
+            <div id="chat-container" class="flex-1 overflow-y-auto p-6 bg-gray-50 space-y-6">
+                
+                <!-- Welcome Message -->
+                <div class="flex justify-center my-4">
+                    <span class="text-xs text-gray-400 bg-gray-200 px-3 py-1 rounded-full">
+                        {{ uiText.today }} 10:42 PM
+                    </span>
+                </div>
+
+                <!-- Message Loop Rendering -->
+                <div v-for="(msg, index) in messages" :key="index" 
+                     :class="['flex w-full', msg.role === 'user' ? 'justify-end' : 'justify-start']">
+                    
+                    <!-- AI Avatar -->
+                    <div v-if="msg.role === 'ai'" class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white shrink-0 mr-4 shadow-md">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+
+                    <!-- Message Bubble -->
+                    <div :class="['max-w-[80%] rounded-2xl p-5 shadow-sm', 
+                                 msg.role === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white border border-gray-100 rounded-bl-none']">
+                        
+                        <!-- Thinking Process (Only shown for AI when thinking) -->
+                        <div v-if="msg.isThinking" class="mb-4 bg-amber-50 border-l-4 border-amber-400 p-3 rounded text-sm text-amber-800">
+                            <div class="flex items-center font-bold mb-1">
+                                <i class="fa-solid fa-brain mr-2 pulse-animation"></i> 
+                                DeepSeek Thinking...
+                            </div>
+                            <div class="space-y-1 opacity-80 text-xs">
+                                <div v-for="step in thinkingSteps" :key="step" class="flex items-center">
+                                    <i class="fa-solid fa-check text-amber-600 mr-2"></i> {{ step }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Main Content -->
+                        <div class="text-sm leading-relaxed" :class="msg.role === 'user' ? 'text-white' : 'text-slate-700'" v-html="msg.content"></div>
+
+                        <!-- References (Only shown for AI) -->
+                        <div v-if="msg.sources && msg.sources.length > 0" class="mt-4 pt-4 border-t border-gray-100">
+                            <p class="text-xs font-bold text-gray-500 mb-2">References (Sources):</p>
+                            <ul class="text-xs text-gray-500 space-y-1">
+                                <li v-for="(source, idx) in msg.sources" :key="idx" class="hover:text-blue-600 cursor-pointer transition">
+                                    [{{ idx + 1 }}] {{ source }}
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- Library Collection Recommendations (Only shown for AI) -->
+                        <div v-if="msg.books && msg.books.length > 0" class="mt-4">
+                            <p class="text-xs font-bold text-gray-500 mb-2">Recommended Library Resources:</p>
+                            <div class="flex flex-wrap gap-3">
+                                <div v-for="book in msg.books" :key="book.id" class="flex bg-slate-50 border border-slate-200 rounded-lg p-2 w-64 hover:shadow-md transition">
+                                    <div class="w-12 h-16 bg-slate-300 rounded flex items-center justify-center text-slate-500 shrink-0">
+                                        <i class="fa-solid fa-book"></i>
+                                    </div>
+                                    <div class="ml-3 flex-1 min-w-0">
+                                        <h4 class="text-sm font-bold text-slate-800 truncate">{{ book.title }}</h4>
+                                        <p class="text-xs text-slate-500 truncate">{{ book.author }}</p>
+                                        <div class="flex justify-between items-center mt-2">
+                                            <span class="text-xs font-mono bg-gray-200 px-1 rounded">{{ book.callNumber }}</span>
+                                            <span :class="['text-[10px] px-1.5 py-0.5 rounded-full font-bold', 
+                                                book.status === 'Available' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700']">
+                                                {{ book.status === 'Available' ? '🟢 Available' : '🔴 Borrowed' }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- User Avatar -->
+                    <div v-if="msg.role === 'user'" class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white shrink-0 ml-4 shadow-md">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                </div>
+
+                <!-- Bottom Spacer -->
+                <div class="h-4"></div>
+            </div>
+
+            <!-- Bottom Input Area -->
+            <div class="bg-white p-4 border-t border-gray-200">
+                <div class="max-w-4xl mx-auto relative">
+                    <div class="absolute -top-10 left-0 flex gap-2">
+                        <span class="bg-white border border-gray-200 text-gray-600 px-3 py-1 rounded-full text-xs shadow-sm cursor-pointer hover:bg-gray-50">
+                            {{ uiText.quickAction1 }}
+                        </span>
+                        <span class="bg-white border border-gray-200 text-gray-600 px-3 py-1 rounded-full text-xs shadow-sm cursor-pointer hover:bg-gray-50">
+                            {{ uiText.quickAction2 }}
+                        </span>
+                    </div>
+                    <div class="flex items-end border border-gray-300 rounded-xl bg-white shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all overflow-hidden">
+                        <textarea 
+                            v-model="inputMessage"
+                            @keydown.enter.prevent="sendMessage"
+                            :placeholder="uiText.placeholder" 
+                            class="w-full p-4 max-h-32 focus:outline-none resize-none bg-transparent text-sm"
+                            rows="1"
+                        ></textarea>
+                        <button 
+                            @click="sendMessage"
+                            :disabled="isProcessing"
+                            class="m-2 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </div>
+                    <div class="text-center mt-2">
+                        <p class="text-xs text-gray-400">{{ uiText.footer }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <script>
+        const { createApp, ref, reactive, computed, nextTick } = Vue;
+
+        createApp({
+            setup() {
+                const inputMessage = ref('');
+                const isProcessing = ref(false);
+                const thinkingSteps = ref([]);
+                const currentConversationId = ref(2);
+                const showSettings = ref(false);
+                const currentLang = ref('en');
+
+                const translations = {
+                    en: {
+                        appTitle: 'LibAI Assistant',
+                        history: 'HISTORY',
+                        studentUser: 'Student User',
+                        dept: 'Computer Science Dept.',
+                        mainTitle: 'Intelligent Consultation (DeepSeek R1 Core)',
+                        ragMode: 'RAG Enhanced Mode',
+                        clearContext: 'Clear Context',
+                        today: 'Today',
+                        placeholder: 'Enter your question here...',
+                        quickAction1: '✨ Generate Paper Outline',
+                        quickAction2: '🔍 Find Recent Core Journals',
+                        footer: 'DeepSeek R1 Model + Library Knowledge Base',
+                        settingsTitle: 'Language',
+                        historyItems: {
+                            1: 'Opening Hours Inquiry',
+                            2: 'Digital Humanities Scenarios',
+                            3: 'Metaverse Library Service Model'
+                        }
+                    },
+                    zh: {
+                        appTitle: 'LibAI 助手',
+                        history: '历史记录',
+                        studentUser: '学生用户',
+                        dept: '计算机学院',
+                        mainTitle: '智能咨询 (DeepSeek R1内核)',
+                        ragMode: 'RAG 增强模式',
+                        clearContext: '清除上下文',
+                        today: '今天',
+                        placeholder: '请输入您的问题...',
+                        quickAction1: '✨ 生成论文大纲',
+                        quickAction2: '🔍 查找近期核心期刊',
+                        footer: 'DeepSeek R1 模型 + 图书馆知识库',
+                        settingsTitle: '语言设置',
+                        historyItems: {
+                            1: '开馆时间查询',
+                            2: '数字人文应用场景',
+                            3: '元宇宙图书馆服务模式'
+                        }
+                    },
+                    ms: {
+                        appTitle: 'Pembantu LibAI',
+                        history: 'SEJARAH',
+                        studentUser: 'Pengguna Pelajar',
+                        dept: 'Fakulti Sains Komputer',
+                        mainTitle: 'Perundingan Pintar (Teras DeepSeek R1)',
+                        ragMode: 'Mod Dipertingkat RAG',
+                        clearContext: 'Kosongkan Konteks',
+                        today: 'Hari Ini',
+                        placeholder: 'Masukkan soalan anda di sini...',
+                        quickAction1: '✨ Hasilkan Rangka Kertas Kerja',
+                        quickAction2: '🔍 Cari Jurnal Teras Terkini',
+                        footer: 'Model DeepSeek R1 + Pangkalan Pengetahuan Perpustakaan',
+                        settingsTitle: 'Bahasa',
+                        historyItems: {
+                            1: 'Pertanyaan Waktu Operasi',
+                            2: 'Senario Kemanusiaan Digital',
+                            3: 'Model Perkhidmatan Perpustakaan Metaverse'
+                        }
+                    }
+                };
+
+                const uiText = computed(() => translations[currentLang.value]);
+
+                const historyList = computed(() => [
+                    { id: 1, title: uiText.value.historyItems[1], icon: 'fa-regular fa-comment-dots' },
+                    { id: 2, title: uiText.value.historyItems[2], icon: 'fa-regular fa-comment-dots' },
+                    { id: 3, title: uiText.value.historyItems[3], icon: 'fa-regular fa-pen-to-square' }
+                ]);
+
+                const changeLanguage = (lang) => {
+                    currentLang.value = lang;
+                    showSettings.value = false;
+                    
+                    // Update UI text based on language
+                    if (lang === 'zh') {
+                        document.title = '高校图书馆智能服务框架 - 原型演示';
+                    } else if (lang === 'ms') {
+                        document.title = 'Rangka Kerja Perkhidmatan Pintar Perpustakaan Universiti - Demo Prototaip';
+                    } else {
+                        document.title = 'University Library Intelligent Service Framework - Prototype Demo';
+                    }
+                };
+
+                // Store conversations
+                const conversations = reactive({
+                    1: [
+                        { role: 'ai', content: 'Hello! I am your Library Intelligent Assistant. How can I help you?', isThinking: false },
+                        { role: 'user', content: 'When does the library close today?' },
+                        { role: 'ai', content: 'The library closes at 10:00 PM today.', isThinking: false }
+                    ],
+                    2: [
+                        { role: 'ai', content: 'Hello! I am your Library Intelligent Assistant. I can help you find resources, answer academic questions, or assist with paper writing. How can I help you today?', isThinking: false },
+                        { role: 'user', content: 'What are the applications of LLMs in Digital Humanities?' },
+                        { 
+                            role: 'ai', 
+                            content: `<strong>Based on the retrieval results, the application of Large Language Models (LLM) in the field of Digital Humanities mainly includes the following aspects:</strong><br><br>
+                                        1. <strong>Automatic Structuring of Historical Texts:</strong><br>Using models for Named Entity Recognition (NER) and Relation Extraction on ancient books and archives to build large-scale historical knowledge graphs, solving the problem of low efficiency in traditional manual organization.<br><br>
+                                        2. <strong>Multimodal Cultural Heritage Analysis:</strong><br>Combining computer vision technology to perform style classification, dating, and cross-media narrative generation for artworks.<br><br>
+                                        3. <strong>Semantically Enhanced Retrieval Experience:</strong><br>Achieving a leap from "keyword retrieval" to "concept retrieval" through semantic vector matching.`,
+                            isThinking: false,
+                            sources: [
+                                "Wang, X. Research on the Integration of Digital Humanities and AI. Library and Information Service, 2024.",
+                                "Smith, J. Generative AI in Cultural Heritage. DH Quarterly, 2023.",
+                                "Li, M. Automated Path for Ancient Book Organization Based on Large Models. Journal of Academic Libraries, 2024."
+                            ],
+                            books: [
+                                { id: 1, title: "Introduction to Digital Humanities", author: "Zhang San", callNumber: "G250.7/123", status: "Available" },
+                                { id: 2, title: "AI and Future Libraries", author: "Li Si (Ed.)", callNumber: "TP18/456", status: "Borrowed" }
+                            ]
+                        }
+                    ],
+                    3: [
+                        { role: 'ai', content: 'Hello! I am your Library Intelligent Assistant. I can help you find resources, answer academic questions, or assist with paper writing. How can I help you today?', isThinking: false },
+                        { role: 'user', content: 'I need to create an outline for a study on the virtual universe service model of university libraries.' },
+                        { 
+                            role: 'ai', 
+                            content: `<strong>Based on AI reasoning capabilities and the IMRaD academic structure, here is a hierarchically clear outline for your study:</strong><br><br>
+                                      1. <strong>Introduction: The Metaverse Concept and Library Transformation Opportunities</strong><br>
+                                      - The rise of the Metaverse and its potential impact on higher education.<br>
+                                      - Current challenges in traditional library services and the need for innovation.<br>
+                                      - Research objectives: Exploring service model innovation in the Metaverse era.<br><br>
+                                      2. <strong>Theoretical Foundation: Digital Twin and Immersive Interaction</strong><br>
+                                      - Digital Twin Technology: Creating virtual replicas of physical library spaces.<br>
+                                      - Immersive Interaction Theory: VR/AR/XR technologies enhancing user experience.<br>
+                                      - Service Design Framework: User-centered design principles in virtual environments.<br><br>
+                                      3. <strong>Service Scenario Design: Virtual Exhibition Hall and Virtual Reference Consultation</strong><br>
+                                      - Virtual Exhibition Hall: 3D immersive displays of special collections and cultural heritage.<br>
+                                      - Virtual Reference Consultation: AI-powered avatars providing 24/7 real-time assistance.<br>
+                                      - Collaborative Learning Spaces: Multi-user virtual study rooms and academic seminars.<br>
+                                      - Gamified Information Literacy Education: Interactive tutorials in virtual environments.<br><br>
+                                      4. <strong>Technical Architecture and Implementation Path</strong><br>
+                                      - Platform selection: Unity, Unreal Engine, or Web-based solutions.<br>
+                                      - Integration with existing library systems (ILS, discovery layers).<br>
+                                      - Data security and privacy considerations in virtual environments.<br><br>
+                                      5. <strong>Case Studies and Best Practices</strong><br>
+                                      - Analysis of pioneer libraries implementing Metaverse services worldwide.<br>
+                                      - User feedback and satisfaction evaluation.<br><br>
+                                      6. <strong>Challenges, Limitations, and Future Directions</strong><br>
+                                      - Technical barriers: Hardware requirements and accessibility issues.<br>
+                                      - Ethical considerations: Digital divide and inclusivity.<br>
+                                      - Future trends: Integration with AI, blockchain, and Web 3.0.<br><br>
+                                      7. <strong>Conclusion and Recommendations</strong><br><br>
+                                      <em>Would you like me to generate a draft review for this chapter based on these documents?</em>`,
+                            isThinking: false,
+                            sources: [
+                                "Johnson, L. et al. Metaverse and Academic Libraries: Opportunities and Challenges. Journal of Academic Librarianship, 2024.",
+                                "Zhang, Y. Digital Twin Technology in Smart Library Construction. Library & Information Science Research, 2023.",
+                                "Smith, R. Immersive Learning Environments in Higher Education. Education Technology Review, 2024."
+                            ],
+                            books: [
+                                { id: 5, title: "The Metaverse: And How It Will Revolutionize Everything", author: "Matthew Ball", callNumber: "TP393/001", status: "Available" },
+                                { id: 6, title: "Virtual Reality in Libraries", author: "Sarah Jones (Ed.)", callNumber: "Z678/042", status: "Available" }
+                            ]
+                        }
+                    ]
+                });
+
+                const messages = ref([]);
+
+                const loadConversation = (id) => {
+                    currentConversationId.value = id;
+                    messages.value = conversations[id];
+                    nextTick(() => {
+                        const chatContainer = document.getElementById('chat-container');
+                        if(chatContainer) chatContainer.scrollTop = chatContainer.scrollHeight;
+                    });
+                };
+
+                // Load default conversation
+                loadConversation(2);
+
+                // Simulate sending message
+                const sendMessage = async () => {
+                    if (!inputMessage.value.trim() || isProcessing.value) return;
+
+                    // 1. Add User Message
+                    messages.value.push({
+                        role: 'user',
+                        content: inputMessage.value
+                    });
+                    
+                    const userQuery = inputMessage.value;
+                    inputMessage.value = '';
+                    isProcessing.value = true;
+                    
+                    // Scroll to bottom
+                    await nextTick();
+                    const chatContainer = document.getElementById('chat-container');
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+
+                    // 2. Add AI Placeholder Message (Thinking State)
+                    const aiMsgIndex = messages.value.length;
+                    messages.value.push({
+                        role: 'ai',
+                        content: '', 
+                        isThinking: true,
+                        sources: [],
+                        books: []
+                    });
+
+                    // 3. Simulate DeepSeek Thinking Process
+                    const steps = [
+                        "Parsing intent...",
+                        "Retrieving related literature...",
+                        "Building Chain of Thought...",
+                        "Generating final response..."
+                    ];
+
+                    for (let i = 0; i < steps.length; i++) {
+                        await new Promise(r => setTimeout(r, 800)); 
+                        thinkingSteps.value.push(steps[i]);
+                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                    }
+
+                    // 4. Replace with Final Response
+                    await new Promise(r => setTimeout(r, 500));
+                    
+                    messages.value[aiMsgIndex].isThinking = false;
+                    thinkingSteps.value = []; 
+                    
+                    // Simple echo response for new queries in this demo
+                    messages.value[aiMsgIndex].content = `<strong>Response to:</strong> ${userQuery}<br><br>This is a simulated response for the new query. In a real application, this would be generated by the DeepSeek model based on the library knowledge base.`;
+                    
+                    isProcessing.value = false;
+                    await nextTick();
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                };
+
+                return {
+                    inputMessage,
+                    messages,
+                    sendMessage,
+                    isProcessing,
+                    thinkingSteps,
+                    historyList,
+                    currentConversationId,
+                    loadConversation,
+                    showSettings,
+                    currentLang,
+                    changeLanguage,
+                    uiText
+                };
+            }
+        }).mount('#app');
+    </script>
 </body>
 </html>
